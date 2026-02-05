@@ -30,3 +30,36 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+*.o
+*.a
+_obj
+_test
+*.[568vq]
+[568vq].out
+*.cgo1.go
+*.cgo2.c
+_cgo_defun.c
+_cgo_gotypes.go
+_cgo_export.*
+_testmain.go
+*.prof
+*.rar
+*.zip
+*.gz
+*.psd
+*.bmd
+*.cfg
+*.pptx
+*.log
+*nohup.out
+*settings.pyc
+*.sublime-project
+*.sublime-workspace
+!.gitkeep
+.DS_Store
+/.idea
+/.vscode
+/output
+*.local.yml
+dumped_hertz_remote_config.json
+/bin
