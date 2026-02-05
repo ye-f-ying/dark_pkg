@@ -198,24 +198,24 @@ func Init[T IBaseConfig, U ICommonConfig](opts ...ConfigOption) (ConfigAdapter[T
 		case ModeEtcd: // 只有 etcd 模式才会执行
 			etcdCfgFromBase := baseCfg.GetEtcdConfig()
 			if etcdCfgFromBase != nil {
-				if len(optsCopy.EtcdAddrs) == 0 && len(etcdCfgFromBase.EtcdAddrs) > 0 {
-					optsCopy.EtcdAddrs = etcdCfgFromBase.EtcdAddrs
+				if len(optsCopy.EtcdAddrs) == 0 && len(etcdCfgFromBase.Endpoints) > 0 {
+					optsCopy.EtcdAddrs = etcdCfgFromBase.Endpoints
 				}
 
 				if optsCopy.EtcdCommonKey == "" && etcdCfgFromBase.EtcdCommonKey != "" {
 					optsCopy.EtcdCommonKey = etcdCfgFromBase.EtcdCommonKey
 				}
 
-				if optsCopy.EtcdTimeout == defaultOpts.EtcdTimeout && etcdCfgFromBase.EtcdTimeout > 0 {
-					optsCopy.EtcdTimeout = etcdCfgFromBase.EtcdTimeout
+				if optsCopy.EtcdTimeout == defaultOpts.EtcdTimeout && etcdCfgFromBase.DialTimeout > 0 {
+					optsCopy.EtcdTimeout = etcdCfgFromBase.DialTimeout
 				}
 
 				if optsCopy.EtcdUser == "" {
-					optsCopy.EtcdUser = etcdCfgFromBase.EtcdUser
+					optsCopy.EtcdUser = etcdCfgFromBase.Username
 				}
 
 				if optsCopy.EtcdPwd == "" {
-					optsCopy.EtcdPwd = etcdCfgFromBase.EtcdPwd
+					optsCopy.EtcdPwd = etcdCfgFromBase.Password
 				}
 			}
 			if len(optsCopy.EtcdAddrs) == 0 {

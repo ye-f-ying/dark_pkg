@@ -29,4 +29,9 @@ type MYSQL struct {
 	MaxIdleConns    int `mapstructure:"maxIdleConns"`
 	ConnMaxLifeTime int `mapstructure:"connMaxLifeTime"`
 	ConnMaxIdleTime int `mapstructure:"connMaxIdleTime"`
+
+	// 公共配置
+	Charset   string `mapstructure:"charset"`   //	字符集
+	ParseTime bool   `mapstructure:"parseTime"` //	解析时间
+	Loc       string `mapstructure:"loc"`       //	时区
 }

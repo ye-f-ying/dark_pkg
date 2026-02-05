@@ -21,6 +21,7 @@ type IBaseConfig interface {
 type ICommonConfig interface {
 	GetMysql() *MYSQL
 	GetDebug() bool
+	GetOpenTelemetry() *OpenTelemetryConfig
 }
 
 type BaseConfig struct {
@@ -72,8 +73,9 @@ func (m *BaseConfig) GetLogDir() string {
 }
 
 type CommonConfig struct {
-	Debug bool   `mapstructure:"debug"`
-	MySql *MYSQL `mapstructure:"mysql"`
+	Debug            bool                 `mapstructure:"debug"`
+	MySql            *MYSQL               `mapstructure:"mysql"`
+	OpenTelemetryCfg *OpenTelemetryConfig `mapstructure:"open_telemetry"`
 }
 
 /**
@@ -90,4 +92,62 @@ func (m *CommonConfig) GetMysql() *MYSQL {
  */
 func (m *CommonConfig) GetDebug() bool {
 	return m.Debug
+}
+
+/**
+ * @description:OpenTelemetry 设置
+ * @return {*}
+ */
+func (m *CommonConfig) GetOpenTelemetry() *OpenTelemetryConfig {
+	return m.OpenTelemetryCfg
+}
+
+/**
+ * @description: 基础配置
+ * @return {*}
+ */
+func GetBaseConfig() IBaseConfig {
+	cfg, _ := GetGlobalAdapter[IBaseConfig, ICommonConfig]()
+	if cfg == nil {
+		return nil
+	}
+	baseCfg, _, _ := cfg.GetConfig()
+	return baseCfg
+}
+
+/**
+ * @description: 公共配置
+ * @return {*}
+ */
+func GetCommonConfig() ICommonConfig {
+	cfg, _ := GetGlobalAdapter[IBaseConfig, ICommonConfig]()
+	if cfg == nil {
+		return nil
+	}
+	_, commonCfg, _ := cfg.GetConfig()
+	return commonCfg
+}
+
+/**
+ * @description: 服务器ID/名称
+ * @return {*}
+ */
+func GetServerID() string {
+	baseCfg := GetBaseConfig()
+	if baseCfg == nil {
+		return ""
+	}
+	return baseCfg.GetServerID()
+}
+
+/**
+ * @description: 服务分布式ID
+ * @return {*}
+ */
+func GetMachineID() uint16 {
+	baseCfg := GetBaseConfig()
+	if baseCfg == nil {
+		return 0
+	}
+	return baseCfg.GetMachineID()
 }

@@ -18,11 +18,21 @@ import (
 )
 
 type ETCDConfig struct {
-	EtcdAddrs     []string `mapstructure:"addrs"`      // etcd集群地址
-	EtcdCommonKey string   `mapstructure:"common_key"` // etcd公共配置Key
-	EtcdTimeout   int64    `mapstructure:"timeout"`    // etcd超时时间
-	EtcdUser      string   `mapstructure:"user"`       // 账号
-	EtcdPwd       string   `mapstructure:"password"`   // 密码
+	Address              string   `mapstructure:"address"`                 //访问地址+注册端口
+	Endpoints            []string `mapstructure:"endpoints"`               // etcd 集群地址
+	Username             string   `mapstructure:"username"`                // etcd 用户名
+	Password             string   `mapstructure:"password"`                // etcd 密码
+	DialTimeout          int64    `mapstructure:"dial_timeout"`            // 连接超时时间（秒）
+	DialKeepAliveTime    int      `mapstructure:"dial_keep_alive_time"`    // 客户端发起 KeepAlive PING 的周期（秒）
+	DialKeepAliveTimeout int      `mapstructure:"dial_keep_alive_timeout"` // 客户端发出 KeepAlive 探测后，等待服务端响应的超时时间
+	EtcdCommonKey        string   `mapstructure:"common_key"`              // etcd公共配置Key
+}
+
+type OpenTelemetryConfig struct {
+	Environment  string  `mapstructure:"environment" json:"environment"`     // 环境（dev/test/prod）
+	ExporterAddr string  `mapstructure:"exporter_addr" json:"exporter_addr"` // 导出地址（如otlp:4317）
+	SamplerRatio float64 `mapstructure:"sampler_ratio" json:"sampler_ratio"` // 采样率（0-1，1为全采样）
+	Enable       bool    `mapstructure:"enable" json:"enable"`               // 是否开启OTel
 }
 
 // EtcdConfig Etcd配置中心模式泛型适配器：T=基础配置，U=公共配置
