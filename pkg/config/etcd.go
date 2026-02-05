@@ -11,8 +11,8 @@ package config
 import (
 	"context"
 	"fmt"
-	"log"
 
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -76,8 +76,7 @@ func (m *EtcdConfig[T, U]) Init() error {
 
 	// 开启etcd公共配置热更新监听
 	go m.watchEtcd()
-	log.Printf("etcd配置中心模式初始化成功，监听Key：%s", m.opts.EtcdCommonKey)
-
+	hlog.Infof("etcd配置中心模式初始化成功，监听Key：%s", m.opts.EtcdCommonKey)
 	return nil
 }
 
@@ -124,11 +123,11 @@ func (m *EtcdConfig[T, U]) watchEtcd() {
 	for resp := range watchChan {
 		for _, event := range resp.Events {
 			if event.Type == clientv3.EventTypePut {
-				log.Println("检测到etcd公共配置更新，重新加载并合并...")
+				hlog.Infof("检测到etcd公共配置更新，重新加载并合并...")
 				// 解析新的etcd公共配置
 				newEtcdV, err := BytesToViper(event.Kv.Value)
 				if err != nil {
-					log.Printf("解析更新后的etcd配置失败：%v", err)
+					hlog.Infof("解析更新后的etcd配置失败：%v", err)
 					// 触发回调，返回错误
 					if m.globalCallback != nil {
 						var emptyT T
@@ -148,7 +147,7 @@ func (m *EtcdConfig[T, U]) watchEtcd() {
 				// 获取新的配置并触发回调
 				newT, newU, err := m.GetConfig()
 				if err != nil {
-					log.Printf("绑定更新后的配置失败：%v", err)
+					hlog.Infof("绑定更新后的配置失败：%v", err)
 					if m.globalCallback != nil {
 						m.globalCallback(newT, newU, err)
 					}
@@ -159,7 +158,7 @@ func (m *EtcdConfig[T, U]) watchEtcd() {
 				if m.globalCallback != nil {
 					m.globalCallback(newT, newU, nil)
 				}
-				log.Println("etcd公共配置热更新成功，已触发业务回调")
+				hlog.Info("etcd公共配置热更新成功，已触发业务回调")
 			}
 		}
 	}
@@ -186,6 +185,6 @@ func writeCommonToEtcd(opts *ConfigOptions) error {
 	if err := EtcdPut(client, opts.EtcdCommonKey, data, opts.EtcdTimeout); err != nil {
 		return err
 	}
-	log.Printf("✅ 本地公共配置[%s]已成功写入etcd Key[%s]", opts.CommonConfigPath, opts.EtcdCommonKey)
+	hlog.Infof("✅ 本地公共配置[%s]已成功写入etcd Key[%s]", opts.CommonConfigPath, opts.EtcdCommonKey)
 	return nil
 }

@@ -14,6 +14,7 @@ type IBaseConfig interface {
 	GetMachineID() uint16       // 分布式ID 或者通过etcd 等自动分配
 	GetEtcdConfig() *ETCDConfig // etcd 配置中心
 	GetConfigMode() ConfigMode  // 配置加载模式
+	GetLogDir() string
 }
 
 // ICommonConfig 公共配置泛型约束（空接口，同上）
@@ -60,6 +61,14 @@ func (m *BaseConfig) GetEtcdConfig() *ETCDConfig {
  */
 func (m *BaseConfig) GetConfigMode() ConfigMode {
 	return m.ConfMode
+}
+
+/**
+ * @description: 获取日志路径
+ * @return {*}
+ */
+func (m *BaseConfig) GetLogDir() string {
+	return m.LogDir
 }
 
 type CommonConfig struct {
