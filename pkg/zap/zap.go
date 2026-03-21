@@ -29,7 +29,6 @@ var (
 	loggerOnce sync.Once
 	logDir     string
 	level      zapcore.Level
-	logDirOnce sync.Once
 )
 
 const (

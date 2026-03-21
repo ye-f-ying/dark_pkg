@@ -1,0 +1,27 @@
+# 服务器名称/id
+server_id: log-test
+# 分布式ID
+machine_id: 1
+# 模式配置
+mode_config: etcd
+# 日志文件加
+log_dir: "./logs"
+# etcd 配置
+etcd_config:
+  # 访问地址+注册端口
+  address:
+  # etcd 集群地址
+  endpoints:
+   - 127.0.0.2:2379
+  # etcd 用户名
+  # username:
+  # etcd 密码
+  # password:
+  # 连接超时时间（秒）
+  dial_timeout: 3
+  # 客户端发起 KeepAlive PING 的周期（秒）
+  dial_keep_alive_time: 30
+  # 客户端发出 KeepAlive 探测后，等待服务端响应的超时时间
+  dial_keep_alive_timeout: 20
+  # etcd公共配置Key
+  common_key: /common/etcd/key

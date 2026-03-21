@@ -145,7 +145,7 @@ func generateDNSMYSQL(conf SQLConfig) string {
 		conf.User,
 		conf.Password,
 		conf.Host,
-		conf.Prot,
+		conf.Port,
 		conf.DBName,
 		conf.Charset,
 		parseTime,

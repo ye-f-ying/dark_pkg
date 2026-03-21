@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"github.com/spf13/viper"
 )
 
@@ -163,19 +164,36 @@ func Init[T IBaseConfig, U ICommonConfig](opts ...ConfigOption) (ConfigAdapter[T
 		for _, opt := range opts {
 			opt(&optsCopy)
 		}
-
+		// 初始化命令行参数
+		initFlag()
+		if cliBaseConfigPath != "" {
+			optsCopy.AppConfigPath = cliBaseConfigPath
+		}
+		if cliConfigPath != "" {
+			optsCopy.CommonConfigPath = cliConfigPath
+		}
+		if cliConfigWrite != -1 {
+			if cliConfigWrite == 1 {
+				optsCopy.IsWrite = true
+			} else {
+				optsCopy.IsWrite = false
+			}
+		}
 		// 初始化viper，加载本地基础配置文件-命令参数>环境变量>本地配置 覆盖，获取有效配置
 		baseViper := viper.New()
 		baseViper.SetConfigFile(optsCopy.AppConfigPath)
 		baseViper.SetConfigType("yaml")
 		if loadErr := baseViper.ReadInConfig(); loadErr != nil {
-			err = fmt.Errorf("预加载本地基础配置失败：%w", loadErr)
-			return
+			/*err = fmt.Errorf("预加载本地基础配置失败：%w", loadErr)
+			return*/
+			hlog.Warnf("预加载本地基础配置失败：%v 使用默认配置！", loadErr)
+			defaultConfig(baseViper)
 		}
 		// 环境变量覆盖：自动映射，点分隔转下划线（如etcd_config.addrs → ETCD_CONFIG_ADDRS）
 		baseViper.AutomaticEnv()
 		baseViper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-		// 暂时无需命令参数覆盖：命令参数由业务通过SetCmdParams传入，此处仅需etcd连接信息
+		// 命令参数覆盖
+		localFlag(baseViper)
 
 		// 将viper配置绑定到基础配置结构体，拿到强类型基础配置
 		var baseCfg T
@@ -194,6 +212,7 @@ func Init[T IBaseConfig, U ICommonConfig](opts ...ConfigOption) (ConfigAdapter[T
 			adapter = &LocalConfig[T, U]{
 				opts: optsCopy,
 				v:    viper.New(),
+				base: baseViper,
 			}
 		case ModeEtcd: // 只有 etcd 模式才会执行
 			etcdCfgFromBase := baseCfg.GetEtcdConfig()
@@ -238,11 +257,13 @@ func Init[T IBaseConfig, U ICommonConfig](opts ...ConfigOption) (ConfigAdapter[T
 			adapter = &EtcdConfig[T, U]{
 				opts: optsCopy,
 				v:    viper.New(),
+				base: baseViper,
 			}
 		default: // 默认走本地配置
 			adapter = &LocalConfig[T, U]{
 				opts: optsCopy,
 				v:    viper.New(),
+				base: baseViper,
 			}
 		}
 

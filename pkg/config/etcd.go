@@ -18,7 +18,7 @@ import (
 )
 
 type ETCDConfig struct {
-	Address              string   `mapstructure:"address"`                 //访问地址+注册端口
+	Address              string   `mapstructure:"address"`                 // 访问地址+注册端口
 	Endpoints            []string `mapstructure:"endpoints"`               // etcd 集群地址
 	Username             string   `mapstructure:"username"`                // etcd 用户名
 	Password             string   `mapstructure:"password"`                // etcd 密码
@@ -52,9 +52,11 @@ type EtcdConfig[T IBaseConfig, U ICommonConfig] struct {
  */
 func (m *EtcdConfig[T, U]) Init() error {
 	// 加载并覆盖基础配置（和本地模式一致）
-	m.base = viper.New()
-	if err := LoadConfigFile(m.base, m.opts.AppConfigPath); err != nil {
-		return err
+	if m.base == nil {
+		m.base = viper.New()
+		if err := LoadConfigFile(m.base, m.opts.AppConfigPath); err != nil {
+			return err
+		}
 	}
 	OverrideByEnv(m.base)
 	if m.cmdParams != nil {

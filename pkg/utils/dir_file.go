@@ -9,6 +9,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,7 +29,9 @@ func IsDirExist(dir string) bool {
 	// 2. 获取文件状态，有任何错误直接返回false
 	info, err := os.Stat(cleanDir)
 	if err != nil {
-		// 关键修复：只要报错（无论不存在/权限不足/路径非法），一律返回false
+		if !os.IsNotExist(err) {
+			fmt.Printf("[WARN] 检查目录状态失败：路径=%s，错误=%v\n", cleanDir, err)
+		}
 		return false
 	}
 	// 3. 无错误时，仅当是文件夹才返回true，是文件则返回false

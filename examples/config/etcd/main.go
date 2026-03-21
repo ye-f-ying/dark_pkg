@@ -32,4 +32,8 @@ func main() {
 	base, conf, err := cfg.GetConfig()
 	fmt.Println(base, conf)
 	fmt.Println(conf.GetMysql())
+	globalAdapter, err := config.GetGlobalAdapter[*BaseConfig, *CommonConfig]()
+	gBase, gConf, err := globalAdapter.GetConfig()
+	fmt.Println(gBase.GetServerID())
+	fmt.Println(gConf.GetMysql())
 }

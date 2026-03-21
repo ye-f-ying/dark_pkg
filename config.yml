@@ -1,0 +1,35 @@
+debug: true
+# 数据库配置
+mysql:
+  # 主库配置（写库）
+  host: "127.0.0.1"           # 主库IP/域名
+  port: 3306                  # 主库端口
+  user: "root"                # 主库用户名
+  password: "root"  # 主库密码
+  db_name: "test"      # 主库数据库名
+
+  # 从库配置（读库，开启读写分离时启用）
+  is_read: false               # 是否启用从库（读写分离）
+  read_host: "127.0.0.1"      # 从库IP/域名
+  read_port: 3306             # 从库端口
+  read_user: "root"           # 从库用户名（可与主库不同）
+  read_password: "root" # 从库密码
+  read_db_name: "test" # 从库数据库名（通常与主库一致）
+
+  # 连接池配置（生产环境核心调优参数）
+  max_open_conns: 100           # 最大打开连接数（根据业务QPS调整）
+  max_idle_conns: 20            # 最大空闲连接数（建议≤maxOpenConns）
+  conn_max_life_time: 3600       # 连接最大存活时间（秒，建议1小时）
+  conn_max_idle_time: 600        # 连接最大空闲时间（秒，建议10分钟）
+
+  # 公共连接参数
+  charset: "utf8mb4"          # 字符集（推荐utf8mb4，兼容emoji）
+  parse_time: true             # 解析时间类型（必须开启，否则time.Time字段解析失败）
+  loc: "Local"                # 时区（Local=本地时区，或显式写Asia/Shanghai）
+  
+# open_telemetry 配置
+open_telemetry:
+  environment: dev  # 环境（dev/test/prod）
+  exporter_addr: otlp:4317  # 导出地址（如otlp:4317）
+  sampler_ratio: 1 # 采样率（0-1，1为全采样）
+  enable: false # 是否开启OTel 是否

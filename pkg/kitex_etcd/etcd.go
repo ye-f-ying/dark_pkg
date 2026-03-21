@@ -15,6 +15,7 @@ import (
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"github.com/ye-f-ying/dark_pkg/pkg/config"
+	"github.com/ye-f-ying/dark_pkg/pkg/zap"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
@@ -68,7 +69,7 @@ func NewETCDclient() (*clientv3.Client, error) {
 		Password:             cfg.Password, // etcd 密码
 		DialKeepAliveTime:    time.Duration(dialKeepAliveTime) * time.Second,
 		DialKeepAliveTimeout: time.Duration(dialKeepAliveTimeout) * time.Second,
-		//Logger:               szap.GetLogger().Logger(),
+		Logger:               zap.GetLogger().Logger(),
 	}
 	client, err := clientv3.New(etcdConfig)
 	if err != nil {

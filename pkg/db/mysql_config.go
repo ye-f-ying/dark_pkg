@@ -33,7 +33,7 @@ func GetMYSQLConfig() *MYSQLConfig {
 		cfg := mysqlCfg.GetMysql()
 		msqlConf.IsSlave = cfg.IsRead
 		msqlConf.Master.Host = cfg.Host
-		msqlConf.Master.Prot = cfg.Prot
+		msqlConf.Master.Port = cfg.Port
 		msqlConf.Master.User = cfg.User
 		msqlConf.Master.Password = cfg.Password
 		msqlConf.Master.DBName = cfg.DBName
@@ -48,7 +48,7 @@ func GetMYSQLConfig() *MYSQLConfig {
 		if cfg.IsRead {
 			var slave SQLConfig
 			slave.Host = cfg.ReadHost
-			slave.Prot = cfg.ReadProt
+			slave.Port = cfg.ReadPort
 			slave.User = cfg.ReadUser
 			slave.Password = cfg.ReadPassword
 			slave.DBName = cfg.ReadDBName
@@ -75,7 +75,7 @@ type MYSQLConfig struct {
 // 数据库配置
 type SQLConfig struct {
 	Host     string `mapstructure:"host"`     //IP地址
-	Prot     int    `mapstructure:"prot"`     //端口
+	Port     int    `mapstructure:"Port"`     //端口
 	User     string `mapstructure:"user"`     //用户名
 	Password string `mapstructure:"password"` //密码
 	DBName   string `mapstructure:"db_name"`  //数据库名称

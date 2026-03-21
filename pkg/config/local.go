@@ -26,11 +26,12 @@ type LocalConfig[T IBaseConfig, U ICommonConfig] struct {
 // Init 初始化本地模式：1.加载基础配置 2.命令+环境覆盖 3.加载本地公共配置 4.合并
 func (m *LocalConfig[T, U]) Init() error {
 	// 步骤1：加载本地基础配置（app.yml）
-	m.base = viper.New()
-	if err := LoadConfigFile(m.base, m.opts.AppConfigPath); err != nil {
-		return err
+	if m.base == nil {
+		m.base = viper.New()
+		if err := LoadConfigFile(m.base, m.opts.AppConfigPath); err != nil {
+			return err
+		}
 	}
-
 	// 步骤2：按优先级覆盖基础配置：命令参数 > 环境变量 > 本地配置
 	OverrideByEnv(m.base) // 环境变量覆盖
 	if m.cmdParams != nil {
