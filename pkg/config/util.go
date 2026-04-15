@@ -47,37 +47,6 @@ func OverrideByEnv(v *viper.Viper) {
 }
 
 /**
- * @description: OverrideByCmd 命令行参数覆盖Viper配置（通过cobra传入的参数映射）
- * @param {*viper.Viper} v
- * @param {map[string]any} cmdParams
- * @return {*}
- */
-func OverrideByCmd(v *viper.Viper, cmdParams map[string]any) {
-	for key, val := range cmdParams {
-		if val != nil {
-			v.Set(key, val)
-		}
-	}
-}
-
-/**
- * @description: MergeViper 合并两个Viper配置：src覆盖dst同名键（递归，支持嵌套）
- * @param {*} dst
- * @param {*viper.Viper} src
- * @return {*}
- */
-func MergeViper(dst, src *viper.Viper) *viper.Viper {
-	sum := viper.New()
-	for _, key := range src.AllKeys() {
-		sum.Set(key, src.Get(key))
-	}
-	for _, key := range dst.AllKeys() {
-		sum.Set(key, dst.Get(key))
-	}
-	return sum
-}
-
-/**
  * @description: ViperToStruct Viper配置绑定到结构体
  * @param {*viper.Viper} v
  * @param {any} dst
@@ -150,4 +119,44 @@ func ReadLocalFile(path string) ([]byte, error) {
 		return nil, fmt.Errorf("读取本地文件[%s]失败：%w", path, err)
 	}
 	return data, nil
+}
+
+/**
+ * @description: 合成远程+本地配置
+ * @param {*viper.Viper} localViper 本地配置
+ * @param {*viper.Viper} remoteViper 远程配置
+ * @param {[]string} protectKeys 需要保护的数据
+ * @return {*}
+ */
+func MergeRemoteToLocalSafely(localViper *viper.Viper, remoteViper *viper.Viper, protectKeys []string) error {
+	// 默认使用全局 viper
+	if localViper == nil {
+		return fmt.Errorf("local viper is not nil")
+	}
+	if remoteViper == nil {
+		return fmt.Errorf("remote viper is not nil")
+	}
+
+	// 把需要保护的键存为 map，快速判断
+	protectMap := make(map[string]struct{}, len(protectKeys))
+	for _, k := range protectKeys {
+		protectMap[k] = struct{}{}
+	}
+
+	// 获取远程所有配置项
+	remoteAllKeys := remoteViper.AllKeys()
+
+	// 遍历远程配置 → 合并到本地，但跳过保护键
+	for _, key := range remoteAllKeys {
+		// 本地保护的字段（serverID/编号），直接跳过，不覆盖
+		if _, isProtected := protectMap[key]; isProtected {
+			continue
+		}
+
+		// 非保护字段 → 用远程配置覆盖本地
+		val := remoteViper.Get(key)
+		localViper.Set(key, val)
+	}
+
+	return nil
 }

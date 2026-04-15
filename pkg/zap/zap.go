@@ -44,19 +44,18 @@ func GetLogger() *Logger {
 }
 
 /**
- * @description: 初始化日志
- * @param {pkgConfig.IBaseConfig} baseCfg
- * @param {pkgConfig.ICommonConfig} cfg
+ * @description:初始化日志
+ * @param {pkgConfig.IConfig} cfg
  * @return {*}
  */
-func InitZap(baseCfg pkgConfig.IBaseConfig, cfg pkgConfig.ICommonConfig) {
+func InitZap(cfg pkgConfig.IConfig) {
 	loggerOnce.Do(func() {
 		level = zap.DebugLevel
 		if cfg != nil {
 			level = zap.InfoLevel
 		}
-		if baseCfg != nil {
-			logDir = baseCfg.GetLogDir()
+		if cfg != nil {
+			logDir = cfg.GetLogDir()
 		}
 
 		dynamicLevel := zap.NewAtomicLevel()

@@ -1,10 +1,8 @@
 /*
- * @Author: yeying
- * @Date: 2026-02-05 11:00:00
+ * @Date: 2026-04-15 14:44:44
+ * @LastEditTime: 2026-04-15 16:57:16
  * @FilePath: /dark_pkg/pkg/config/etcd.go
  * @Description:
- *
- * Copyright (c) 2026 by yeying, All Rights Reserved.
  */
 package config
 
@@ -36,55 +34,81 @@ type OpenTelemetryConfig struct {
 }
 
 // EtcdConfig Etcd配置中心模式泛型适配器：T=基础配置，U=公共配置
-type EtcdConfig[T IBaseConfig, U ICommonConfig] struct {
-	opts           ConfigOptions     // 配置选项
-	v              *viper.Viper      // 最终合并后的总配置
-	base           *viper.Viper      // 	基础配置
-	cfg            *viper.Viper      // 	公共配置
-	cmdParams      map[string]any    // 命令行参数（覆盖基础配置）
-	etcdClient     *clientv3.Client  // etcd客户端
-	globalCallback func(T, U, error) // 泛型版配置更新回调
+type EtcdConfig[T IConfig] struct {
+	opts           ConfigOptions    // 配置选项
+	remoteViper    *viper.Viper     // 远程配置
+	cfg            *viper.Viper     // 最终配置
+	etcdClient     *clientv3.Client // etcd客户端
+	globalCallback func(T, error)   // 泛型版配置更新回调
 }
 
 /**
  * @description:Init 初始化etcd模式：1.加载基础配置 2.命令+环境覆盖 3.连接etcd 4.读取etcd公共配置 5.合并
  * @return {*}
  */
-func (m *EtcdConfig[T, U]) Init() error {
+func (m *EtcdConfig[T]) Init() error {
 	// 加载并覆盖基础配置（和本地模式一致）
-	if m.base == nil {
-		m.base = viper.New()
-		if err := LoadConfigFile(m.base, m.opts.AppConfigPath); err != nil {
+	if m.cfg == nil {
+		m.cfg = viper.New()
+		if err := LoadConfigFile(m.cfg, m.opts.ConfigPath); err != nil {
 			return err
 		}
-	}
-	OverrideByEnv(m.base)
-	if m.cmdParams != nil {
-		OverrideByCmd(m.base, m.cmdParams)
+		// 合并默认选项和传入选项
+		optsCopy := *defaultOpts
+		// 初始化命令行参数
+		initFlag()
+		if cliConfigPath != "" {
+			optsCopy.ConfigPath = cliConfigPath
+		}
+		if cliConfigWrite != -1 {
+			if cliConfigWrite == 1 {
+				optsCopy.IsWrite = true
+			} else {
+				optsCopy.IsWrite = false
+			}
+		}
+		// 初始化viper，加载本地基础配置文件-命令参数>环境变量>本地配置 覆盖，获取有效配置
+		cfgViper := viper.New()
+		cfgViper.SetConfigFile(optsCopy.ConfigPath)
+		cfgViper.SetConfigType("yaml")
+		if loadErr := cfgViper.ReadInConfig(); loadErr != nil {
+			/*err = fmt.Errorf("预加载本地基础配置失败：%w", loadErr)
+			return*/
+			hlog.Warnf("预加载本地基础配置失败：%v 使用默认配置！", loadErr)
+			defaultConfig(cfgViper)
+		}
+		// 环境变量覆盖：自动映射，点分隔转下划线（如etcd_config.addrs → ETCD_CONFIG_ADDRS）
+		OverrideByEnv(cfgViper)
+
+		// 命令参数覆盖
+		localFlag(cfgViper)
 	}
 
 	// 创建etcd客户端（配置中心模式，etcd不可用则直接失败）
 	client, err := NewEtcdClient(&m.opts) // 传指针（工具方法入参为*Options）
 	if err != nil {
-		return fmt.Errorf("etcd连接失败（配置中心模式需正常连接）：%w", err)
+		return fmt.Errorf("[pkg/config/etcd.go->Init]etcd连接失败（配置中心模式需正常连接）：%w", err)
 	}
 	m.etcdClient = client
 
 	// 从etcd读取公共配置
 	etcdData, err := EtcdGet(client, m.opts.EtcdCommonKey, m.opts.EtcdTimeout)
 	if err != nil {
-		return fmt.Errorf("读取etcd公共配置失败：%w", err)
+		return fmt.Errorf("[pkg/config/etcd.go->Init]读取etcd公共配置失败：%w", err)
 	}
 
 	// etcd配置转Viper
 	etcdV, err := BytesToViper(etcdData)
 	if err != nil {
-		return fmt.Errorf("解析etcd配置失败：%w", err)
+		return fmt.Errorf("[pkg/config/etcd.go->Init]解析etcd配置失败：%w", err)
 	}
-	m.cfg = etcdV
+	m.remoteViper = etcdV
 
 	// 合并基础配置+etcd公共配置
-	m.v = MergeViper(m.base, m.cfg)
+	err = MergeRemoteToLocalSafely(m.cfg, m.remoteViper, m.opts.protectLocalKeys)
+	if err != nil {
+		return fmt.Errorf("[pkg/config/etcd.go->Init]合并远程配置失败：%w", err)
+	}
 
 	// 开启etcd公共配置热更新监听
 	go m.watchEtcd()
@@ -93,43 +117,19 @@ func (m *EtcdConfig[T, U]) Init() error {
 }
 
 // 获取分离的基础/公共配置
-func (m *EtcdConfig[T, U]) GetConfig() (T, U, error) {
+func (m *EtcdConfig[T]) GetConfig() (T, error) {
 	var base T
-	var common U
-	if err := ViperToStruct(m.base, &base); err != nil {
-		return base, common, fmt.Errorf("绑定基础配置失败：%w", err)
+	if err := ViperToStruct(m.cfg, &base); err != nil {
+		return base, fmt.Errorf("[pkg/config/etcd.go->GetConfig]绑定基础配置失败：%w", err)
 	}
-	if err := ViperToStruct(m.cfg, &common); err != nil {
-		return base, common, fmt.Errorf("绑定公共配置失败：%w", err)
-	}
-	return base, common, nil
-}
-
-/**
- * @description:注册配置更新回调，etcd变化时返回新的基础/公共配置
- * @param {T} newT
- * @param {U} newU
- * @param {error} err
- * @return {*}
- */
-func (m *EtcdConfig[T, U]) Watch(callback func(newT T, newU U, err error)) {
-	m.globalCallback = callback
-}
-
-/**
- * @description: SetCmdParams 设置命令行参数（覆盖基础配置）
- * @param {map[string]any} params
- * @return {*}
- */
-func (m *EtcdConfig[T, U]) SetCmdParams(params map[string]any) {
-	m.cmdParams = params
+	return base, nil
 }
 
 /**
  * @description: watchEtcd 监听etcd公共配置变化，泛型版热更新
  * @return {*}
  */
-func (m *EtcdConfig[T, U]) watchEtcd() {
+func (m *EtcdConfig[T]) watchEtcd() {
 	// 持续监听etcd Key变化
 	watchChan := m.etcdClient.Watch(context.Background(), m.opts.EtcdCommonKey)
 	for resp := range watchChan {
@@ -143,37 +143,55 @@ func (m *EtcdConfig[T, U]) watchEtcd() {
 					// 触发回调，返回错误
 					if m.globalCallback != nil {
 						var emptyT T
-						var emptyU U
-						m.globalCallback(emptyT, emptyU, fmt.Errorf("解析etcd新配置失败：%w", err))
+						m.globalCallback(emptyT, fmt.Errorf("[pkg/config/etcd.go->watchEtcd]解析etcd新配置失败：%w", err))
 					}
 					continue
 				}
 
-				if newEtcdV == nil {
+				if newEtcdV == nil || m.cfg == nil {
+					continue
+				}
+				m.remoteViper = newEtcdV
+				// 合并基础配置+etcd公共配置
+				err = MergeRemoteToLocalSafely(m.cfg, newEtcdV, nil)
+				if err != nil {
+					hlog.Infof("[pkg/config/etcd.go]合并更新后的配置失败：%v", err)
+					if m.globalCallback != nil {
+						var emptyT T
+						m.globalCallback(emptyT, err)
+					}
 					continue
 				}
 
-				m.v = MergeViper(m.base, newEtcdV)
-				m.cfg = newEtcdV
-
 				// 获取新的配置并触发回调
-				newT, newU, err := m.GetConfig()
+				newT, err := m.GetConfig()
 				if err != nil {
-					hlog.Infof("绑定更新后的配置失败：%v", err)
+					hlog.Infof("[pkg/config/etcd.go]绑定更新后的配置失败：%v", err)
 					if m.globalCallback != nil {
-						m.globalCallback(newT, newU, err)
+						m.globalCallback(newT, err)
 					}
 					continue
 				}
 
 				// 无错误，触发回调返回新配置
 				if m.globalCallback != nil {
-					m.globalCallback(newT, newU, nil)
+					m.globalCallback(newT, nil)
 				}
 				hlog.Info("etcd公共配置热更新成功，已触发业务回调")
 			}
 		}
 	}
+}
+
+/**
+ * @description:注册配置更新回调，etcd变化时返回新的基础/公共配置
+ * @param {T} newT
+ * @param {U} newU
+ * @param {error} err
+ * @return {*}
+ */
+func (m *EtcdConfig[T]) Watch(callback func(newT T, err error)) {
+	m.globalCallback = callback
 }
 
 /**
@@ -183,7 +201,7 @@ func (m *EtcdConfig[T, U]) watchEtcd() {
  */
 func writeCommonToEtcd(opts *ConfigOptions) error {
 	// 1. config.yml文件
-	data, err := ReadLocalFile(opts.CommonConfigPath)
+	data, err := ReadLocalFile(opts.ConfigPath)
 	if err != nil {
 		return err
 	}
@@ -197,6 +215,6 @@ func writeCommonToEtcd(opts *ConfigOptions) error {
 	if err := EtcdPut(client, opts.EtcdCommonKey, data, opts.EtcdTimeout); err != nil {
 		return err
 	}
-	hlog.Infof("✅ 本地公共配置[%s]已成功写入etcd Key[%s]", opts.CommonConfigPath, opts.EtcdCommonKey)
+	hlog.Infof("✅ 本地公共配置[%s]已成功写入etcd Key[%s]", opts.ConfigPath, opts.EtcdCommonKey)
 	return nil
 }

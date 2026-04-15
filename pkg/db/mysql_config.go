@@ -22,11 +22,11 @@ var (
 func GetMYSQLConfig() *MYSQLConfig {
 	msqlConfOnce.Do(func() {
 		msqlConf = &MYSQLConfig{}
-		gaCfg, _ := config.GetGlobalAdapter[config.IBaseConfig, config.ICommonConfig]()
+		gaCfg, _ := config.GetGlobalAdapter[config.IConfig]()
 		if gaCfg == nil {
 			panic("mysql not configured")
 		}
-		_, mysqlCfg, _ := gaCfg.GetConfig()
+		mysqlCfg, _ := gaCfg.GetConfig()
 		if mysqlCfg == nil || mysqlCfg.GetMysql() == nil {
 			panic("mysql not configured")
 		}

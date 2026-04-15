@@ -14,22 +14,24 @@ import (
 	"github.com/ye-f-ying/dark_pkg/pkg/config"
 )
 
-type BaseConfig struct {
-	config.BaseConfig `mapstructure:",squash"` // 需要扁平化
-}
-
-type CommonConfig struct {
-	config.CommonConfig `mapstructure:",squash"`
+type Config struct {
+	config.DefaultConfig `mapstructure:",squash"` // 需要扁平化
+	TestCfg              string                   `mapstructure:"test_cfg"  default:"test"` // 分布式ID
 }
 
 func main() {
-	cfg, err := config.Init[*BaseConfig, *CommonConfig]()
+	cfg, err := config.Init[*Config]()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	base, conf, err := cfg.GetConfig()
-	fmt.Println(base, conf)
+	conf, err := cfg.GetConfig()
+	fmt.Println(conf)
 	fmt.Println(conf.GetMysql())
-	fmt.Println(config.GetGlobalAdapter[*BaseConfig, *CommonConfig]())
+	globalAdapter, err := config.GetGlobalAdapter[*Config]()
+	gConf, err := globalAdapter.GetConfig()
+	fmt.Println(gConf)
+	fmt.Println(gConf.GetServerID())
+	fmt.Println(gConf.GetMysql())
+	fmt.Println(gConf.TestCfg)
 }

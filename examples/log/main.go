@@ -16,26 +16,22 @@ import (
 	"github.com/ye-f-ying/dark_pkg/pkg/zap"
 )
 
-type BaseConfig struct {
-	config.BaseConfig `mapstructure:",squash"` // 需要扁平化
-}
-
-type CommonConfig struct {
-	config.CommonConfig `mapstructure:",squash"`
+type Config struct {
+	config.DefaultConfig `mapstructure:",squash"` // 需要扁平化
 }
 
 func main() {
-	cfg, err := config.Init[*BaseConfig, *CommonConfig]()
+	cfg, err := config.Init[*Config]()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	base, conf, err := cfg.GetConfig()
+	conf, err := cfg.GetConfig()
 	if err != nil {
 		hlog.Errorf("读取配置文件失败！%v", err)
 		return
 	}
-	zap.InitZap(base, conf)
+	zap.InitZap(conf)
 	hlog.Debug("debug")
 	hlog.Info("Info")
 	hlog.Error("Error")
