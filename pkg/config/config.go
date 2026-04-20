@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-04-15 14:43:43
- * @LastEditTime: 2026-04-15 17:02:38
+ * @LastEditTime: 2026-04-20 16:20:37
  * @FilePath: /dark_pkg/pkg/config/config.go
  * @Description:
  */
@@ -38,6 +38,7 @@ type IConfig interface {
 	GetMysql() *MYSQL
 	GetDebug() bool
 	GetOpenTelemetry() *OpenTelemetryConfig
+	GetNatsConfig() *NATSConfig
 }
 
 // 命令行参数
@@ -86,6 +87,7 @@ type DefaultConfig struct {
 	Debug            bool                 `mapstructure:"debug"`
 	MySql            *MYSQL               `mapstructure:"mysql"`
 	OpenTelemetryCfg *OpenTelemetryConfig `mapstructure:"open_telemetry"`
+	NatsCfg          *NATSConfig          `mapstructure:"nats_config"` //nats配置
 }
 
 /**
@@ -150,6 +152,14 @@ func (m *DefaultConfig) GetDebug() bool {
  */
 func (m *DefaultConfig) GetOpenTelemetry() *OpenTelemetryConfig {
 	return m.OpenTelemetryCfg
+}
+
+/**
+ * @description: 默认nats配置
+ * @return {*}
+ */
+func (m *DefaultConfig) GetNatsConfig() *NATSConfig {
+	return m.NatsCfg
 }
 
 func initFlag() {
@@ -249,12 +259,7 @@ func defaultConfig(baseViper *viper.Viper) {
  * @return {*}
  */
 func GetConfig() IConfig {
-	cfg, _ := GetGlobalAdapter[*DefaultConfig]()
-	if cfg == nil {
-		return nil
-	}
-	baseCfg, _ := cfg.GetConfig()
-	return baseCfg
+	return GetGlobalConfig()
 }
 
 /**
@@ -262,7 +267,7 @@ func GetConfig() IConfig {
  * @return {*}
  */
 func GetServerID() string {
-	baseCfg := GetConfig()
+	baseCfg := GetGlobalConfig()
 	if baseCfg == nil {
 		return ""
 	}
@@ -274,7 +279,7 @@ func GetServerID() string {
  * @return {*}
  */
 func GetMachineID() uint16 {
-	baseCfg := GetConfig()
+	baseCfg := GetGlobalConfig()
 	if baseCfg == nil {
 		return 0
 	}

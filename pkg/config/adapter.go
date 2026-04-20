@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-04-15 14:53:03
- * @LastEditTime: 2026-04-15 16:57:00
+ * @LastEditTime: 2026-04-20 16:05:31
  * @FilePath: /dark_pkg/pkg/config/adapter.go
  * @Description:
  */
@@ -140,6 +140,7 @@ func Init[T IConfig](opts ...ConfigOption) (ConfigAdapter[T], error) {
 	}
 	// 保存全局实例
 	globalAdapter = adapter
+	globalConfig, _ = adapter.GetConfig()
 	return adapter, nil
 }
 
@@ -157,4 +158,18 @@ func GetGlobalAdapter[T IConfig]() (ConfigAdapter[T], error) {
 		return nil, fmt.Errorf("全局适配器类型不匹配，预期[%T]，实际[%T]", adapter, globalAdapter)
 	}
 	return adapter, nil
+}
+
+/**
+ * @description: 通过接口获取数据
+ * @return {*}
+ */
+func GetGlobalConfig() IConfig {
+	if globalConfig == nil {
+		return nil
+	}
+	if cfg, ok := globalConfig.(IConfig); ok {
+		return cfg
+	}
+	return nil
 }

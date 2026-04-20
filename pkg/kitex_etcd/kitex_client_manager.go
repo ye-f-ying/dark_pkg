@@ -86,17 +86,16 @@ func (m *ClientManager) Init() error {
 	m.initOnce.Do(func() {
 		m.mu.Lock()
 		defer m.mu.Unlock()
-		gaCfg, _ := config.GetGlobalAdapter[config.IConfig]()
+		gaCfg := config.GetGlobalConfig()
 		if gaCfg == nil {
 			err = fmt.Errorf("kitex etcd not configured")
 			return
 		}
-		baseCfg, _ := gaCfg.GetConfig()
-		if baseCfg == nil || baseCfg.GetEtcdConfig() == nil {
+		cfg := gaCfg.GetEtcdConfig()
+		if cfg == nil {
 			err = fmt.Errorf("kitex etcd not configured")
 			return
 		}
-		cfg := baseCfg.GetEtcdConfig()
 		etcdCfg = cfg
 		timeout := cfg.DialTimeout
 		if timeout <= 0 {

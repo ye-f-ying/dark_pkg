@@ -60,3 +60,17 @@ open_telemetry:
   exporter_addr: otlp:4317  # 导出地址（如otlp:4317）
   sampler_ratio: 1 # 采样率（0-1，1为全采样）
   enable: false # 是否开启OTel 是否
+
+# nats 配置
+nats_config:
+  # NATS 集群地址
+  endpoints:
+    - 127.0.0.2:4222
+  # NATS 用户名
+  username: "root"
+  # NATS 密码
+  password: "root"
+  # 重连间隔时间
+  reconnect_wait: 1
+  # 最大重连次数
+  max_reconnects: 10

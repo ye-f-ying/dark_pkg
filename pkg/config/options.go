@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-04-15 15:42:54
- * @LastEditTime: 2026-04-15 16:57:31
+ * @LastEditTime: 2026-04-20 16:04:41
  * @FilePath: /dark_pkg/pkg/config/options.go
  * @Description:
  */
@@ -23,7 +23,8 @@ type ConfigOptions struct {
 
 // 定义全局泛型实例的持有者，避免包级泛型（Go不支持包级泛型变量）
 var (
-	globalAdapter any       // 泛型适配器实例（任意实现ConfigAdapter[T,U]的类型）
+	globalAdapter any       // 泛型适配器实例（任意实现ConfigAdapter[T]的类型）
+	globalConfig  any       // 泛型适配器实例（任意实现T的类型 通过接口获取公共设置）
 	once          sync.Once // 单例初始化锁
 	defaultOpts   = &ConfigOptions{
 		Mode:             DefaultMode,
