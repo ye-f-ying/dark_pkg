@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-05-30 16:16:02
- * @LastEditTime: 2026-05-30 16:22:27
+ * @LastEditTime: 2026-05-30 16:58:17
  * @FilePath: /dark_pkg/pkg/db/redis.go
  * @Description:
  */
@@ -9,6 +9,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"sync"
 	"time"
 
@@ -56,6 +57,9 @@ func (m *RedisCluster) Init() error {
 	cfg := GetConfigRedis()
 	m.ctx = context.Background()
 	redisLen := len(cfg.Address)
+	if cfg.PoolSize <= 0 {
+		cfg.PoolSize = 10 * runtime.GOMAXPROCS(0)
+	}
 	if redisLen <= 0 {
 		return fmt.Errorf("连接配置异常！redis地址必须大于1个")
 	} else if redisLen == 1 { //单机连接

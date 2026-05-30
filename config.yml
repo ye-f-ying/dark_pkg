@@ -26,6 +26,17 @@ etcd_config:
   # etcd公共配置Key
   common_key: /common/etcd/key
 debug: true
+# redis配置
+redis:
+  address: 
+    - 127.0.0.1:6379           # 链接信息
+  #user_name:     # 用户名
+  password: "hanxing"  # 密码
+  db: 0 # db
+  pool_size: 
+  min_idle_conns: 5
+  # read_timeout:  
+  # write_timeout:
 # 数据库配置
 mysql:
   # 主库配置（写库）
