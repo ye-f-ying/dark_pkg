@@ -74,7 +74,7 @@ type MYSQLConfig struct {
 // 数据库配置
 type SQLConfig struct {
 	Host     string `mapstructure:"host"`     //IP地址
-	Port     int    `mapstructure:"Port"`     //端口
+	Port     int    `mapstructure:"port"`     //端口
 	User     string `mapstructure:"user"`     //用户名
 	Password string `mapstructure:"password"` //密码
 	DBName   string `mapstructure:"db_name"`  //数据库名称

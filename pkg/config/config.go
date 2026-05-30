@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-04-15 14:43:43
- * @LastEditTime: 2026-04-20 16:20:37
+ * @LastEditTime: 2026-05-30 16:13:49
  * @FilePath: /dark_pkg/pkg/config/config.go
  * @Description:
  */
@@ -36,6 +36,7 @@ type IConfig interface {
 	GetConfigMode() ConfigMode  // 配置加载模式
 	GetLogDir() string
 	GetMysql() *MYSQL
+	GetRedis() *REDIS
 	GetDebug() bool
 	GetOpenTelemetry() *OpenTelemetryConfig
 	GetNatsConfig() *NATSConfig
@@ -86,6 +87,7 @@ type DefaultConfig struct {
 	LogDir           string               `mapstructure:"log_dir" default:"./logs"`        // 日志目录
 	Debug            bool                 `mapstructure:"debug"`
 	MySql            *MYSQL               `mapstructure:"mysql"`
+	RedisCfg         *REDIS               `mapstructure:"redis"`
 	OpenTelemetryCfg *OpenTelemetryConfig `mapstructure:"open_telemetry"`
 	NatsCfg          *NATSConfig          `mapstructure:"nats_config"` //nats配置
 }
@@ -136,6 +138,14 @@ func (m *DefaultConfig) GetLogDir() string {
  */
 func (m *DefaultConfig) GetMysql() *MYSQL {
 	return m.MySql
+}
+
+/**
+ * @description: 默认Redis配置
+ * @return {*}
+ */
+func (m *DefaultConfig) GetRedis() *REDIS {
+	return m.RedisCfg
 }
 
 /**

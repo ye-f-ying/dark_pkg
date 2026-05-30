@@ -132,7 +132,7 @@ func generateDNSMYSQL(conf SQLConfig) string {
 	if conf.Charset == "" {
 		conf.Charset = "utf8mb4"
 	}
-	//目前强制用true 不然时间解析不了
+	// 目前强制用true 不然时间解析不了
 	parseTime := "true"
 	/*if !conf.ParseTime {
 		parseTime = "false"
