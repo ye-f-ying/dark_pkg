@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-04-15 14:43:43
- * @LastEditTime: 2026-05-30 16:13:49
+ * @LastEditTime: 2026-05-30 17:43:48
  * @FilePath: /dark_pkg/pkg/config/config.go
  * @Description:
  */
@@ -206,7 +206,7 @@ func localFlag(baseViper *viper.Viper) {
 		baseViper.Set("server_id", cliServerID)
 	}
 
-	if cliMachineID <= 0 {
+	if cliMachineID > 0 {
 		baseViper.Set("machine_id", cliMachineID)
 	}
 

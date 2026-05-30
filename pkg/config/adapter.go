@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-04-15 14:53:03
- * @LastEditTime: 2026-04-20 16:05:31
+ * @LastEditTime: 2026-05-30 17:42:11
  * @FilePath: /dark_pkg/pkg/config/adapter.go
  * @Description:
  */
@@ -63,10 +63,11 @@ func Init[T IConfig](opts ...ConfigOption) (ConfigAdapter[T], error) {
 
 		// 将viper配置绑定到基础配置结构体，拿到强类型基础配置
 		var cfg T
-		if bindErr := cfgViper.Unmarshal(&cfg); bindErr != nil {
+		if bindErr := ViperToStruct(cfgViper, &cfg); bindErr != nil {
 			err = fmt.Errorf("基础配置绑定结构体失败：%w", bindErr)
 			return
 		}
+		fmt.Println(cfg)
 
 		if optsCopy.Mode == "" {
 			optsCopy.Mode = cfg.GetConfigMode()
