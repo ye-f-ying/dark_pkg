@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-05-30 16:16:02
- * @LastEditTime: 2026-05-30 16:58:17
+ * @LastEditTime: 2026-05-31 15:43:36
  * @FilePath: /dark_pkg/pkg/db/redis.go
  * @Description:
  */
@@ -146,4 +146,29 @@ func GetRedisContext() context.Context {
 		InitRedis()
 	}
 	return redisCluster.GetContext()
+}
+
+/**
+ * @description: redis 频率限制
+ * @param {context.Context} ctx
+ * @param {string} key
+ * @param {int} limitMax
+ * @param {time.Duration} limitTime
+ * @return {*}
+ */
+func FrequencyCheckRedis(ctx context.Context, key string, limitMax int, limitTime time.Duration) (isAllow bool, count int, err error) {
+	pipe := GetRedisClient().Pipeline()
+
+	incr := pipe.Incr(ctx, key)
+	pipe.Expire(ctx, key, limitTime) // 每次刷新时间 使用滚动限制
+
+	_, err = pipe.Exec(ctx)
+	if err != nil {
+		return false, 0, err
+	}
+
+	count = int(incr.Val())
+	isAllow = count <= limitMax
+
+	return isAllow, count, nil
 }
