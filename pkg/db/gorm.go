@@ -1,7 +1,7 @@
 /*
  * @Author: yeying
  * @Date: 2026-02-05 14:07:09
- * @FilePath: /dark_pkg/pkg/db/grom.go
+ * @FilePath: /dark_pkg/pkg/db/gorm.go
  * @Description:
  *
  * Copyright (c) 2026 by yeying, All Rights Reserved.
@@ -19,22 +19,22 @@ import (
 	"gorm.io/plugin/dbresolver"
 )
 
-var gromDBMYSQL *gorm.DB
-var gromMYSQLDBOnce sync.Once
+var gormDBMYSQL *gorm.DB
+var gormMYSQLDBOnce sync.Once
 
 /**
  * @description: 初始化GromPGSQL
  * @param {MYSQLConfi} cfg
  * @return {*}
  */
-func InitGromMYSQL() error {
+func InitGormMYSQL() error {
 	config := GetMYSQLConfig()
 	if config == nil {
 		return fmt.Errorf("数据库配置不能为空！请先配置数据库配置")
 	}
 
 	var errInfo error
-	gromMYSQLDBOnce.Do(func() {
+	gormMYSQLDBOnce.Do(func() {
 		MaxOpenConns := config.Master.MaxOpenConns
 		MaxIdleConns := config.Master.MaxIdleConns
 		ConnMaxLifeTime := config.Master.ConnMaxLifeTime
@@ -93,7 +93,7 @@ func InitGromMYSQL() error {
 				errInfo = err
 				return
 			}
-			gromDBMYSQL = master
+			gormDBMYSQL = master
 			return
 		}
 
@@ -112,7 +112,7 @@ func InitGromMYSQL() error {
 			errInfo = err
 			return
 		}
-		gromDBMYSQL = master
+		gormDBMYSQL = master
 	})
 	return errInfo
 }
@@ -121,11 +121,11 @@ func InitGromMYSQL() error {
  * @description: 获取Grom 数据库对象
  * @return {*}
  */
-func GetGromDBMYSQL() *gorm.DB {
-	if gromDBMYSQL == nil {
-		InitGromMYSQL()
+func GetGormDBMYSQL() *gorm.DB {
+	if gormDBMYSQL == nil {
+		InitGormMYSQL()
 	}
-	return gromDBMYSQL
+	return gormDBMYSQL
 }
 
 func generateDNSMYSQL(conf SQLConfig) string {
