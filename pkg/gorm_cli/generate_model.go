@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-06-15 17:52:55
- * @LastEditTime: 2026-06-16 14:06:08
+ * @LastEditTime: 2026-06-16 14:41:32
  * @FilePath: /dark_pkg/pkg/gorm_cli/generate_model.go
  * @Description:
  */
@@ -465,7 +465,7 @@ func RenderTemplate(tplStr string, data TplData, outPath string) error {
 }
 
 // GenerateBase 生成公共 base.go 文件，已存在则跳过
-func GenerateBase(outDir, packageName string) error {
+func GenerateBase(outDir, packageName, baseTemplate string) error {
 	outPath := filepath.Join(outDir, "model.go")
 	if _, err := os.Stat(outPath); err == nil {
 		return nil
@@ -477,7 +477,7 @@ func GenerateBase(outDir, packageName string) error {
 		Package: packageName,
 	}
 
-	tpl, err := template.New("base").Parse(ModelBaseTemplate)
+	tpl, err := template.New("base").Parse(baseTemplate)
 	if err != nil {
 		return fmt.Errorf("解析 base 模板失败: %w", err)
 	}
