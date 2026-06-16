@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-06-15 15:23:17
- * @LastEditTime: 2026-06-15 17:59:38
+ * @LastEditTime: 2026-06-16 14:42:16
  * @FilePath: /dark_pkg/examples/gorm_cli/main.go
  * @Description:
  */
@@ -61,7 +61,7 @@ func main() {
 		return
 	}
 
-	if err := gorm_cli.GenerateBase(outputDir, *pkgName); err != nil {
+	if err := gorm_cli.GenerateBase(outputDir, *pkgName, gorm_cli.ModelBaseTemplate); err != nil {
 		hlog.Errorf("❌ 创建基础模型失败: %v", err)
 		os.Exit(1)
 		return
