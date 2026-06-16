@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-06-15 17:52:55
- * @LastEditTime: 2026-06-15 17:55:40
+ * @LastEditTime: 2026-06-16 14:06:08
  * @FilePath: /dark_pkg/pkg/gorm_cli/generate_model.go
  * @Description:
  */
@@ -80,41 +80,94 @@ type FieldInfo struct {
 func mysql2GoType(mysqlType, null string) string {
 	lowType := strings.ToLower(mysqlType)
 	switch {
-	case strings.Contains(lowType, "decimal") || strings.Contains(lowType, "numeric"):
+	// 精确匹配整型类型（按优先级从高到低排列）
+	case strings.Contains(lowType, "tinyint unsigned"):
 		if null == "YES" {
-			return "*decimal.Decimal"
+			return "*uint8"
 		}
-		return "decimal.Decimal"
-	case strings.Contains(lowType, "bigint"):
+		return "uint8"
+	case strings.Contains(lowType, "smallint unsigned"):
+		if null == "YES" {
+			return "*uint16"
+		}
+		return "uint16"
+	case strings.Contains(lowType, "mediumint unsigned"):
+		if null == "YES" {
+			return "*uint32"
+		}
+		return "uint32"
+	case strings.Contains(lowType, "int unsigned") && !strings.Contains(lowType, "bigint"):
+		if null == "YES" {
+			return "*uint32"
+		}
+		return "uint32"
+	case strings.Contains(lowType, "bigint unsigned"):
 		if null == "YES" {
 			return "*uint64"
 		}
 		return "uint64"
+
+	// 有符号整型
 	case strings.Contains(lowType, "tinyint"):
 		if null == "YES" {
 			return "*int8"
 		}
 		return "int8"
-	case strings.Contains(lowType, "int"):
+	case strings.Contains(lowType, "smallint"):
+		if null == "YES" {
+			return "*int16"
+		}
+		return "int16"
+	case strings.Contains(lowType, "mediumint"):
 		if null == "YES" {
 			return "*int32"
 		}
 		return "int32"
-	case strings.Contains(lowType, "varchar"), strings.Contains(lowType, "char"), strings.Contains(lowType, "text"):
+	case strings.Contains(lowType, "int") && !strings.Contains(lowType, "bigint"):
 		if null == "YES" {
-			return "*string"
+			return "*int32"
 		}
-		return "string"
-	case strings.Contains(lowType, "datetime"), strings.Contains(lowType, "timestamp"):
+		return "int32"
+	case strings.Contains(lowType, "bigint"):
 		if null == "YES" {
-			return "*time.Time"
+			return "*int64"
 		}
-		return "time.Time"
-	case strings.Contains(lowType, "double"), strings.Contains(lowType, "float"):
+		return "int64"
+
+	// 其他类型
+	case strings.Contains(lowType, "decimal") || strings.Contains(lowType, "numeric"):
+		if null == "YES" {
+			return "*decimal.Decimal"
+		}
+		return "decimal.Decimal"
+
+	case strings.Contains(lowType, "double") || strings.Contains(lowType, "float"):
 		if null == "YES" {
 			return "*float64"
 		}
 		return "float64"
+
+	case strings.Contains(lowType, "varchar") ||
+		strings.Contains(lowType, "char") ||
+		strings.Contains(lowType, "text") ||
+		strings.Contains(lowType, "blob"):
+		if null == "YES" {
+			return "*string"
+		}
+		return "string"
+
+	case strings.Contains(lowType, "datetime") ||
+		strings.Contains(lowType, "timestamp") ||
+		strings.Contains(lowType, "date") ||
+		strings.Contains(lowType, "time"):
+		if null == "YES" {
+			return "*time.Time"
+		}
+		return "time.Time"
+
+	case strings.Contains(lowType, "json"):
+		return "string" // JSON 类型建议用字符串处理
+
 	default:
 		return "string"
 	}
