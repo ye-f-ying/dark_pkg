@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-04-15 15:54:46
- * @LastEditTime: 2026-04-15 16:57:23
+ * @LastEditTime: 2026-10-05 14:47:53
  * @FilePath: /dark_pkg/pkg/config/local.go
  * @Description:
  */
@@ -9,7 +9,6 @@ package config
 import (
 	"fmt"
 
-	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"github.com/spf13/viper"
 )
 
@@ -22,51 +21,31 @@ type LocalConfig[T IConfig] struct {
 // Init 初始化本地模式：1.加载基础配置 2.命令+环境覆盖 3.加载本地公共配置 4.合并
 func (m *LocalConfig[T]) Init() error {
 	// 加载本地基础配置（app.yml）
-	if m.cfg == nil {
-		m.cfg = viper.New()
-		if err := LoadConfigFile(m.cfg, m.opts.ConfigPath); err != nil {
-			return err
-		}
-
-		// 合并默认选项和传入选项
-		optsCopy := *defaultOpts
-		// 初始化命令行参数
-		initFlag()
-		if cliConfigPath != "" {
-			optsCopy.ConfigPath = cliConfigPath
-		}
-		if cliConfigWrite != -1 {
-			if cliConfigWrite == 1 {
-				optsCopy.IsWrite = true
-			} else {
-				optsCopy.IsWrite = false
-			}
-		}
-		// 初始化viper，加载本地基础配置文件-命令参数>环境变量>本地配置 覆盖，获取有效配置
-		cfgViper := viper.New()
-		cfgViper.SetConfigFile(optsCopy.ConfigPath)
-		cfgViper.SetConfigType("yaml")
-		if loadErr := cfgViper.ReadInConfig(); loadErr != nil {
-			/*err = fmt.Errorf("预加载本地基础配置失败：%w", loadErr)
-			return*/
-			hlog.Warnf("预加载本地基础配置失败：%v 使用默认配置！", loadErr)
-			defaultConfig(cfgViper)
-		}
-		// 环境变量覆盖：自动映射，点分隔转下划线（如etcd_config.addrs → ETCD_CONFIG_ADDRS）
-		OverrideByEnv(cfgViper)
-
-		// 命令参数覆盖
-		localFlag(cfgViper)
-
+	if m.cfg != nil {
+		return nil // adapter 已加载覆盖过，直接复用
 	}
+	initFlag()
+	if cliConfigPath != "" {
+		m.opts.ConfigPath = cliConfigPath // 覆盖要写回 m.opts，原来只改了局部 optsCopy
+	}
+	if cliConfigWrite != -1 {
+		m.opts.IsWrite = cliConfigWrite == 1
+	}
+	v := viper.New()
+	if err := LoadConfigFile(v, m.opts.ConfigPath); err != nil {
+		return err
+	}
+	OverrideByEnv(v) // 直接作用在生效配置上，原来作用在被丢弃的 cfgViper 上
+	localFlag(v)
+	m.cfg = v
 	return nil
 }
 
 // GetConfig 泛型版：获取分离的基础配置和公共配置
-func (l *LocalConfig[T]) GetConfig() (T, error) {
+func (m *LocalConfig[T]) GetConfig() (T, error) {
 	var base T
 	// 分别绑定基础/公共配置到业务自定义的泛型结构体
-	if err := ViperToStruct(l.cfg, &base); err != nil {
+	if err := ViperToStruct(m.cfg, &base); err != nil {
 		return base, fmt.Errorf("绑定基础配置失败：%w", err)
 	}
 	return base, nil

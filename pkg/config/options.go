@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-04-15 15:42:54
- * @LastEditTime: 2026-04-20 16:04:41
+ * @LastEditTime: 2026-10-05 15:22:40
  * @FilePath: /dark_pkg/pkg/config/options.go
  * @Description:
  */
@@ -30,7 +30,7 @@ var (
 		Mode:             DefaultMode,
 		ConfigPath:       DefaultConfigPath,
 		EtcdCommonKey:    DefaultEtcdCommonKey,
-		EtcdTimeout:      DefaultEtcdTimeout,
+		EtcdTimeout:      -999999,
 		IsWrite:          false,
 		EtcdUser:         "",
 		EtcdPwd:          "",

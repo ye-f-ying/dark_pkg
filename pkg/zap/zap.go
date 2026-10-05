@@ -13,6 +13,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -25,7 +26,7 @@ import (
 )
 
 var (
-	logger     *Logger
+	logger     atomic.Pointer[Logger] //*Logger
 	loggerOnce sync.Once
 	logDir     string
 	level      zapcore.Level
@@ -40,7 +41,7 @@ const (
 )
 
 func GetLogger() *Logger {
-	return logger
+	return logger.Load()
 }
 
 /**
@@ -51,7 +52,7 @@ func GetLogger() *Logger {
 func InitZap(cfg pkgConfig.IConfig) {
 	loggerOnce.Do(func() {
 		level = zap.DebugLevel
-		if cfg != nil {
+		if cfg != nil && !cfg.GetDebug() {
 			level = zap.InfoLevel
 		}
 		if cfg != nil {
@@ -77,8 +78,22 @@ func InitZap(cfg pkgConfig.IConfig) {
 	})
 }
 
+type rotation struct {
+	lg    *Logger
+	files []*lumberjack.Logger
+}
+
+var cur atomic.Value
+
 func setLogger(dynamicLevel zap.AtomicLevel) {
-	logger = NewLogger(
+	ljs := make([]*lumberjack.Logger, 0, 5)
+	dailyWS := func(prefix string) zapcore.WriteSyncer {
+		lj := newLumberjack(prefix) // 原来的 getDailyWriteSyncer 拆出，返回 *lumberjack.Logger
+		ljs = append(ljs, lj)
+		return zapcore.AddSync(lj)
+	}
+	//logger
+	newLg := NewLogger(
 		WithCores([]CoreConfig{
 			{
 				Enc: zapcore.NewJSONEncoder(humanEncoderConfig()),
@@ -87,41 +102,53 @@ func setLogger(dynamicLevel zap.AtomicLevel) {
 			},
 			{
 				Enc: zapcore.NewJSONEncoder(humanEncoderConfig()),
-				Ws:  getDailyWriteSyncer("all"),
+				Ws:  dailyWS("all"),
 				Lvl: zap.NewAtomicLevelAt(zapcore.DebugLevel),
 			},
 			{
 				Enc: zapcore.NewJSONEncoder(humanEncoderConfig()),
-				Ws:  getDailyWriteSyncer("debug"),
+				Ws:  dailyWS("debug"),
 				Lvl: zap.LevelEnablerFunc(func(lev zapcore.Level) bool {
 					return lev == zap.DebugLevel
 				}),
 			},
 			{
 				Enc: zapcore.NewJSONEncoder(humanEncoderConfig()),
-				Ws:  getDailyWriteSyncer("info"),
+				Ws:  dailyWS("info"),
 				Lvl: zap.LevelEnablerFunc(func(lev zapcore.Level) bool {
 					return lev == zap.InfoLevel
 				}),
 			},
 			{
 				Enc: zapcore.NewJSONEncoder(humanEncoderConfig()),
-				Ws:  getDailyWriteSyncer("warn"),
+				Ws:  dailyWS("warn"),
 				Lvl: zap.LevelEnablerFunc(func(lev zapcore.Level) bool {
 					return lev == zap.WarnLevel
 				}),
 			},
 			{
 				Enc: zapcore.NewJSONEncoder(humanEncoderConfig()),
-				Ws:  getDailyWriteSyncer("error"),
+				Ws:  dailyWS("error"),
 				Lvl: zap.LevelEnablerFunc(func(lev zapcore.Level) bool {
 					return lev >= zap.ErrorLevel
 				}),
 			},
 		}...),
 	)
-	hlog.SetLogger(logger)
+	//hlog.SetLogger(logger)
+	logger.Store(newLg)
+	hlog.SetLogger(GetLogger())
 	klog.SetLogger(&HlogKitexLogger{}) // 合并 klog 到hlog
+
+	old := cur.Swap(&rotation{lg: newLg, files: ljs})
+	if old != nil {
+		go func(o *rotation) {
+			o.lg.Sync() // ① flush 缓冲区（stdout 报 ENOTTY 属正常，忽略）
+			for _, lj := range o.files {
+				lj.Close() // ② 关闭旧文件句柄 ← 就是这个方法
+			}
+		}(old.(*rotation))
+	}
 }
 
 func humanEncoderConfig() zapcore.EncoderConfig {
@@ -132,7 +159,7 @@ func humanEncoderConfig() zapcore.EncoderConfig {
 	return cfg
 }
 
-func getDailyWriteSyncer(prefix string) zapcore.WriteSyncer {
+func newLumberjack(prefix string) *lumberjack.Logger {
 	today := time.Now().Format("2006-01-02")
 	dir := strings.TrimSuffix(logDir, "/")
 	if dir == "" {
@@ -141,7 +168,7 @@ func getDailyWriteSyncer(prefix string) zapcore.WriteSyncer {
 
 	err := utils.MkdirIfNotExist(dir)
 	if err != nil {
-		hlog.Errorf("创建文件夹[%s]失败！%w", dir, err)
+		hlog.Errorf("创建文件夹[%s]失败！%v", dir, err)
 	}
 
 	file := fmt.Sprintf("%s/%s-%s.log", dir, prefix, today) // ← 文件名格式
@@ -154,9 +181,13 @@ func getDailyWriteSyncer(prefix string) zapcore.WriteSyncer {
 		Compress:   true,       // 压缩旧日志
 		LocalTime:  true,
 	}
-
-	return zapcore.AddSync(lj)
+	return lj
 }
+
+/*
+func getDailyWriteSyncer(prefix string) zapcore.WriteSyncer {
+	return zapcore.AddSync(newLumberjack(prefix))
+}*/
 
 func testEncoderConfig() zapcore.EncoderConfig {
 	return zapcore.EncoderConfig{

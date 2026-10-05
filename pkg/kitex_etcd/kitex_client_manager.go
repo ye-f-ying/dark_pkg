@@ -96,7 +96,7 @@ func (m *ClientManager) Init() error {
 			err = fmt.Errorf("kitex etcd not configured")
 			return
 		}
-		etcdCfg = cfg
+		SetETCDConfig(cfg)
 		timeout := cfg.DialTimeout
 		if timeout <= 0 {
 			timeout = 3
@@ -179,7 +179,11 @@ var (
  */
 func GetDefaultEtcdRegistry() registry.Registry {
 	once.Do(func() {
-		cfg := etcdCfg
+		cfg, err := getETCDConfig()
+		if err != nil {
+			hlog.Error(err)
+			panic(err)
+		}
 		if cfg == nil || len(cfg.Endpoints) == 0 {
 			hlog.Error("etcd config is nil or empty endpoints")
 			panic("etcd config is nil or empty endpoints")
@@ -233,7 +237,11 @@ func WithDialKeepAliveTimeout(dialKeepAliveTimeout int) etcd.Option {
 }
 
 func GetDefaultServerOption(serverName string) []server.Option {
-	cfg := etcdCfg
+	cfg, err := getETCDConfig()
+	if err != nil {
+		hlog.Error(err)
+		panic(err)
+	}
 	if cfg == nil {
 		hlog.Error("没有配置Kitex！")
 		panic("没有配置Kitex！")

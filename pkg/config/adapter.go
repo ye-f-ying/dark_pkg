@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-04-15 14:53:03
- * @LastEditTime: 2026-05-30 17:42:11
+ * @LastEditTime: 2026-10-05 15:22:48
  * @FilePath: /dark_pkg/pkg/config/adapter.go
  * @Description:
  */
@@ -67,7 +67,6 @@ func Init[T IConfig](opts ...ConfigOption) (ConfigAdapter[T], error) {
 			err = fmt.Errorf("基础配置绑定结构体失败：%w", bindErr)
 			return
 		}
-		fmt.Println(cfg)
 
 		if optsCopy.Mode == "" {
 			optsCopy.Mode = cfg.GetConfigMode()
@@ -91,8 +90,11 @@ func Init[T IConfig](opts ...ConfigOption) (ConfigAdapter[T], error) {
 					optsCopy.EtcdCommonKey = etcdCfgFromBase.EtcdCommonKey
 				}
 
-				if optsCopy.EtcdTimeout == defaultOpts.EtcdTimeout && etcdCfgFromBase.DialTimeout > 0 {
+				if optsCopy.EtcdTimeout == -999999 && etcdCfgFromBase.DialTimeout > 0 {
 					optsCopy.EtcdTimeout = etcdCfgFromBase.DialTimeout
+				}
+				if optsCopy.EtcdTimeout == -999999 {
+					optsCopy.EtcdTimeout = DefaultEtcdTimeout
 				}
 
 				if optsCopy.EtcdUser == "" {
@@ -121,8 +123,8 @@ func Init[T IConfig](opts ...ConfigOption) (ConfigAdapter[T], error) {
 			}
 
 			adapter = &EtcdConfig[T]{
-				opts: optsCopy,
-				cfg:  cfgViper,
+				opts:   optsCopy,
+				localV: cfgViper,
 			}
 		default: // 默认走本地配置
 			adapter = &LocalConfig[T]{
@@ -138,6 +140,9 @@ func Init[T IConfig](opts ...ConfigOption) (ConfigAdapter[T], error) {
 	// 若初始化失败，返回nil和错误
 	if err != nil {
 		return nil, err
+	}
+	if adapter == nil {
+		return nil, fmt.Errorf("配置失败！配置器为空！")
 	}
 	// 保存全局实例
 	globalAdapter = adapter

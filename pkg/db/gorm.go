@@ -10,10 +10,12 @@ package db
 
 import (
 	"fmt"
+	"os"
 
 	"sync"
 	"time"
 
+	driver "github.com/go-sql-driver/mysql"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/plugin/dbresolver"
@@ -21,6 +23,7 @@ import (
 
 var gormDBMYSQL *gorm.DB
 var gormMYSQLDBOnce sync.Once
+var gormGetOnce sync.Once
 
 /**
  * @description: 初始化GromPGSQL
@@ -43,13 +46,13 @@ func InitGormMYSQL() error {
 			MaxOpenConns = 100
 		}
 		if MaxIdleConns <= 0 {
-			MaxOpenConns = 20
+			MaxIdleConns = 20
 		}
 		if ConnMaxLifeTime <= 0 {
-			MaxOpenConns = 1800
+			ConnMaxLifeTime = 1800
 		}
 		if ConnMaxIdleTime <= 0 {
-			MaxOpenConns = 300
+			ConnMaxIdleTime = 300
 		}
 		masterDNS := generateDNSMYSQL(config.Master)
 		master, err := gorm.Open(mysql.New(mysql.Config{
@@ -69,7 +72,7 @@ func InitGormMYSQL() error {
 					DSN: generateDNSMYSQL(slave),
 				})
 			}
-			master.Use(dbresolver.Register(
+			err = master.Use(dbresolver.Register(
 				dbresolver.Config{
 					Sources: []gorm.Dialector{mysql.New(mysql.Config{
 						DSN: masterDNS,
@@ -83,6 +86,10 @@ func InitGormMYSQL() error {
 				SetConnMaxLifetime(time.Duration(ConnMaxLifeTime) * time.Second).
 				SetConnMaxIdleTime(time.Duration(ConnMaxIdleTime) * time.Second),
 			)
+			if err != nil {
+				errInfo = err
+				return
+			}
 			masterDB, err := master.DB()
 			if err != nil {
 				errInfo = err
@@ -122,21 +129,52 @@ func InitGormMYSQL() error {
  * @return {*}
  */
 func GetGormDBMYSQL() *gorm.DB {
-	if gormDBMYSQL == nil {
-		InitGormMYSQL()
-	}
+	gormGetOnce.Do(func() {
+		if err := InitGormMYSQL(); err != nil {
+			fmt.Printf("init grom db error:%v ", err)
+			os.Exit(1)
+		}
+	})
 	return gormDBMYSQL
 }
 
 func generateDNSMYSQL(conf SQLConfig) string {
+	// 字符集默认 utf8mb4
 	if conf.Charset == "" {
+		conf.Charset = "utf8mb4"
+	}
+	// 时区默认 Local
+	if conf.Loc == "" {
+		conf.Loc = "Local"
+	}
+
+	// 目前强制 true，不然时间解析不了
+	conf.ParseTime = true
+	loc, err := time.LoadLocation(conf.Loc) // Loc 是 string，driver.Config 需要 *time.Location
+	if err != nil {
+		loc = time.Local
+	}
+	mc := driver.Config{
+		User:   conf.User,
+		Passwd: conf.Password,
+		Net:    "tcp",
+		Addr:   fmt.Sprintf("%s:%d", conf.Host, conf.Port),
+		DBName: conf.DBName,
+		Params: map[string]string{"charset": conf.Charset}, // charset 通过 Params 传入
+		// 其余 charset/timeout 参数按现有 DSN 字符串补齐
+		ParseTime: conf.ParseTime,
+		Loc:       loc,
+	}
+	return mc.FormatDSN()
+
+	/*if conf.Charset == "" {
 		conf.Charset = "utf8mb4"
 	}
 	// 目前强制用true 不然时间解析不了
 	parseTime := "true"
-	/*if !conf.ParseTime {
+	if !conf.ParseTime {
 		parseTime = "false"
-	}*/
+	}
 	if conf.Loc == "" {
 		conf.Loc = "Local"
 	}
@@ -149,5 +187,6 @@ func generateDNSMYSQL(conf SQLConfig) string {
 		conf.DBName,
 		conf.Charset,
 		parseTime,
-		conf.Loc)
+		conf.Loc)*/
+
 }

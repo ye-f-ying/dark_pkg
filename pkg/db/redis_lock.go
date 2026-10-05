@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-05-30 16:23:24
- * @LastEditTime: 2026-05-30 16:24:47
+ * @LastEditTime: 2026-10-05 12:51:51
  * @FilePath: /dark_pkg/pkg/db/redis_lock.go
  * @Description:
  */
@@ -72,7 +72,7 @@ func (m *RedisManage) RunDistributedLocks(key string, lockTTL, waitTimeout time.
 	for {
 		select {
 		case <-deadlineCtx.Done(): //超时
-			return ErrRedisLockTimeout, nil
+			return nil, ErrRedisLockTimeout
 		case <-ticker.C:
 			newRl, err := TryLock(ctx, key, lockTTL)
 			if err == nil {

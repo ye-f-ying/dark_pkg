@@ -35,7 +35,7 @@ var globalTracer trace.Tracer
  * @return {*}优雅关闭函数 + 错误
  */
 func InitOpenTelemetry(ctx context.Context, cfg *config.OpenTelemetryConfig) (func(), error) {
-	if !cfg.Enable || cfg.ExporterAddr == "" {
+	if cfg == nil || (cfg != nil && !cfg.Enable) || cfg.ExporterAddr == "" {
 		hlog.Info("OpenTelemetry is disabled, skip init")
 		return func() {}, nil
 	}
@@ -46,7 +46,7 @@ func InitOpenTelemetry(ctx context.Context, cfg *config.OpenTelemetryConfig) (fu
 		return nil, errors.New("otel service name is required")
 	}
 	// 采样率默认全采样（0-1，1为100%）
-	if cfg.SamplerRatio <= 0 || cfg.SamplerRatio > 1 {
+	if cfg.SamplerRatio < 0 || cfg.SamplerRatio > 1 {
 		cfg.SamplerRatio = 1.0
 	}
 

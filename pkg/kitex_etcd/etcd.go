@@ -11,6 +11,7 @@ package kitex_etcd
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -22,8 +23,19 @@ import (
 var (
 	etcdDefault *clientv3.Client
 	etcdOnce    sync.Once
-	etcdCfg     *config.ETCDConfig
+	//etcdCfg     *config.ETCDConfig
+	etcdCfg atomic.Pointer[config.ETCDConfig]
 )
+
+func SetETCDConfig(c *config.ETCDConfig) { etcdCfg.Store(c) } // ClientManager.Init 里调
+
+func getETCDConfig() (*config.ETCDConfig, error) {
+	c := etcdCfg.Load()
+	if c == nil {
+		return nil, fmt.Errorf("etcd not config, call ClientManager.Init first")
+	}
+	return c, nil
+}
 
 /**
  * @description: 默认的etcd客户端 -- kratos 服务端和客户端使用单独的 etcd 不与这个共用 这个用于单独ETCD 相关操作 以隔离业务与grpc操作互不影响
@@ -46,7 +58,10 @@ func GetDefaultETCDClient() *clientv3.Client {
  * @return {*}
  */
 func NewETCDclient() (*clientv3.Client, error) {
-	cfg := etcdCfg
+	cfg, err := getETCDConfig()
+	if err != nil {
+		return nil, err
+	}
 	if cfg == nil {
 		return nil, fmt.Errorf("kratos etcd not config")
 	}

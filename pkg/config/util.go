@@ -160,3 +160,36 @@ func MergeRemoteToLocalSafely(localViper *viper.Viper, remoteViper *viper.Viper,
 
 	return nil
 }
+
+/**
+ * @description:本地+远程合成一个全新 viper，不修改任何入参
+ * @param {*} localV
+ * @param {*viper.Viper} remoteV
+ * @param {[]string} protectKeys
+ * @return {*}
+ */
+func BuildMergedViper(localV, remoteV *viper.Viper, protectKeys []string) (*viper.Viper, error) {
+	if localV == nil {
+		return nil, fmt.Errorf("local viper is nil")
+	}
+	if remoteV == nil {
+		return nil, fmt.Errorf("remote viper is nil")
+	}
+	nv := viper.New()
+	// 先铺本地全量配置
+	for _, k := range localV.AllKeys() {
+		nv.Set(k, localV.Get(k))
+	}
+	// 再叠远程配置，跳过保护键
+	protect := make(map[string]struct{}, len(protectKeys))
+	for _, k := range protectKeys {
+		protect[k] = struct{}{}
+	}
+	for _, k := range remoteV.AllKeys() {
+		if _, ok := protect[k]; ok {
+			continue
+		}
+		nv.Set(k, remoteV.Get(k))
+	}
+	return nv, nil
+}

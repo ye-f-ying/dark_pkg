@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-04-15 14:43:43
- * @LastEditTime: 2026-05-30 17:43:48
+ * @LastEditTime: 2026-10-05 16:06:26
  * @FilePath: /dark_pkg/pkg/config/config.go
  * @Description:
  */
@@ -8,6 +8,7 @@ package config
 
 import (
 	"flag"
+	"sync"
 
 	"github.com/spf13/viper"
 )
@@ -50,7 +51,7 @@ var (
 	cliServerID   string // --server-id server_id
 	cliMachineID  int    // --machine-id machine_id
 	cliLogDir     string // --log-dir log_dir
-	cliModeConfig string // --mode-config server_id
+	cliModeConfig string // --mode_config mode_config
 
 	// etcd
 	cliETCDAddress              string   //  --etcd-address
@@ -172,30 +173,33 @@ func (m *DefaultConfig) GetNatsConfig() *NATSConfig {
 	return m.NatsCfg
 }
 
+var initFlagOnce sync.Once
+
 func initFlag() {
-	// 基础配置参数
-	flag.StringVar(&cliConfigPath, "config", "", "配置文件路径（默认 ）")
-	flag.IntVar(&cliConfigWrite, "config_write", -1, "是否将配置文件写入etcd")
-	flag.StringVar(&cliServerID, "server_id", "", "服务器ID（覆盖配置文件 server_id）")
-	flag.IntVar(&cliMachineID, "machine_id", 0, "分布式ID机器标识（覆盖配置文件 machine_id）")
-	flag.StringVar(&cliLogDir, "log_dir", "", "日志目录（覆盖配置文件 log_dir）")
-	flag.StringVar(&cliModeConfig, "mode_config", "", "日志目录（覆盖配置文件 mode_config）")
+	initFlagOnce.Do(func() {
+		// 基础配置参数
+		flag.StringVar(&cliConfigPath, "config", "", "配置文件路径（默认 ）")
+		flag.IntVar(&cliConfigWrite, "config_write", -1, "是否将配置文件写入etcd")
+		flag.StringVar(&cliServerID, "server_id", "", "服务器ID（覆盖配置文件 server_id）")
+		flag.IntVar(&cliMachineID, "machine_id", 0, "分布式ID机器标识（覆盖配置文件 machine_id）")
+		flag.StringVar(&cliLogDir, "log_dir", "", "日志目录（覆盖配置文件 log_dir）")
+		flag.StringVar(&cliModeConfig, "mode_config", "", "模式配置（覆盖配置文件 mode_config）")
 
-	// etcd
-	flag.StringVar(&cliETCDAddress, "etcd_config_address", "", "访问地址+注册端口（覆盖配置文件 etcd_config.address）")
-	flag.Func("etcd_config_endpoints", "ETCD集群地址（可多次指定，覆盖 etcd_config.endpoints）", func(s string) error {
-		cliETCDEndpoints = append(cliETCDEndpoints, s)
-		return nil
+		// etcd
+		flag.StringVar(&cliETCDAddress, "etcd_config_address", "", "访问地址+注册端口（覆盖配置文件 etcd_config.address）")
+		flag.Func("etcd_config_endpoints", "ETCD集群地址（可多次指定，覆盖 etcd_config.endpoints）", func(s string) error {
+			cliETCDEndpoints = append(cliETCDEndpoints, s)
+			return nil
+		})
+		flag.StringVar(&cliETCDUsername, "etcd_config_username", "", "etcd 用户名（覆盖配置文件 etcd_config.username")
+		flag.StringVar(&cliETCDPassword, "etcd_config_password", "", "etcd 密码（覆盖配置文件 etcd_config.password")
+		flag.Int64Var(&cliETCDDialTimeout, "etcd_config_dial_timeout", -999999, "连接超时时间（秒）（覆盖配置文件 etcd_config.dial_timeout")
+		flag.IntVar(&cliETCDDialKeepAliveTime, "etcd_config_dial_keep_alive_time", -999999, "客户端发起 KeepAlive PING 的周期（秒）（覆盖配置文件 etcd_config.dial_keep_alive_time）")
+		flag.IntVar(&cliETCDDialKeepAliveTimeout, "etcd_config_dial_keep_alive_timeout", -999999, "客户端发出 KeepAlive 探测后，等待服务端响应的超时时间（覆盖配置文件 etcd_config.dial_keep_alive_timeout）")
+		flag.StringVar(&cliETCDCommonKey, "etcd_config_common_key", "", "etcd公共配置Key（覆盖配置文件 etcd_config.common_key）")
+		// 解析命令行参数
+		flag.Parse()
 	})
-	flag.StringVar(&cliETCDUsername, "etcd_config_username", "", "etcd 用户名（覆盖配置文件 etcd_config.username")
-	flag.StringVar(&cliETCDPassword, "etcd_config_password", "", "etcd 密码（覆盖配置文件 etcd_config.password")
-	flag.Int64Var(&cliETCDDialTimeout, "etcd_config_dial_timeout", -999999, "连接超时时间（秒）（覆盖配置文件 etcd_config.dial_timeout")
-	flag.IntVar(&cliETCDDialKeepAliveTime, "etcd_config_dial_keep_alive_time", -999999, "客户端发起 KeepAlive PING 的周期（秒）（覆盖配置文件 etcd_config.dial_keep_alive_time）")
-	flag.IntVar(&cliETCDDialKeepAliveTimeout, "etcd_config_dial_keep_alive_timeout", -999999, "客户端发出 KeepAlive 探测后，等待服务端响应的超时时间（覆盖配置文件 etcd_config.dial_keep_alive_timeout）")
-	flag.StringVar(&cliETCDCommonKey, "etcd_config_common_key", "", "etcd公共配置Key（覆盖配置文件 etcd_config.common_key）")
-	// 解析命令行参数
-	flag.Parse()
-
 }
 
 func localFlag(baseViper *viper.Viper) {

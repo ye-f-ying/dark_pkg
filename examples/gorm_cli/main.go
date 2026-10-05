@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-06-15 15:23:17
- * @LastEditTime: 2026-06-16 14:42:16
+ * @LastEditTime: 2026-10-05 15:10:05
  * @FilePath: /dark_pkg/examples/gorm_cli/main.go
  * @Description:
  */
@@ -22,6 +22,10 @@ type Config struct {
 }
 
 func main() {
+	tableFlag := flag.String("table", "", "指定生成的表名，不指定则生成当前库所有表")
+	outFlag := flag.String("out", "./models", "模型文件输出目录，默认 ./models")
+	pkgName := flag.String("pkg", "models", "包名，默认 models")
+
 	cfg, err := config.Init[*Config]()
 	if err != nil {
 		hlog.Errorf("init config error:%v ", err)
@@ -48,9 +52,6 @@ func main() {
 		return
 	}
 	dbName := conf.GetMysql().DBName
-	tableFlag := flag.String("table", "", "指定生成的表名，不指定则生成当前库所有表")
-	outFlag := flag.String("out", "./models", "模型文件输出目录，默认 ./models")
-	pkgName := flag.String("pkg", "models", "包名，默认 models")
 	flag.Parse()
 
 	// 2. 创建输出目录（不存在则递归创建）
@@ -97,7 +98,7 @@ func main() {
 			continue
 		}
 
-		hlog.Errorf("✅ 生成成功: %s\n", outPath)
+		hlog.Infof("✅ 生成成功: %s\n", outPath)
 		successCount++
 	}
 

@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-04-20 16:30:01
- * @LastEditTime: 2026-04-20 18:30:25
+ * @LastEditTime: 2026-10-05 15:55:10
  * @FilePath: /dark_pkg/pkg/messagemgr/nats_transport.go
  * @Description:
  */
@@ -141,7 +141,7 @@ func (m *NatsTransport) makeHandlerFunc(h *Handler) nats.MsgHandler {
 					return msg.Ack()
 				},
 				RetryFunc: func(delay time.Duration) error {
-					newMsg := &nats.Msg{
+					/*newMsg := &nats.Msg{
 						Subject: msg.Subject,
 						Data:    msg.Data,
 						Header:  nats.Header{},
@@ -156,7 +156,20 @@ func (m *NatsTransport) makeHandlerFunc(h *Handler) nats.MsgHandler {
 						return m.nc.PublishMsg(newMsg)
 					}
 					_, err := m.js.PublishMsg(newMsg)
-					return err
+					return err*/
+					headerMsg := nats.Header{}
+					if msg.Header.Get(nats.MsgIdHdr) != "" {
+						headerMsg.Set(nats.MsgIdHdr, msg.Header.Get(nats.MsgIdHdr))
+					}
+					if delay > 0 {
+						headerMsg.Set("Nats-Delay", fmt.Sprintf("%d", int(delay.Milliseconds())))
+					}
+					if h.Transport == PubSubTransport {
+						newMsg := &nats.Msg{Subject: msg.Subject, Data: msg.Data, Header: headerMsg}
+						return m.nc.PublishMsg(newMsg) // PubSub 无 Ack 概念，只能重发
+					}
+					return msg.NakWithDelay(delay)
+
 				},
 			}
 
@@ -432,11 +445,11 @@ func (m *NatsTransport) Start(hs []*Handler) error {
 func (m *NatsTransport) Ping() error {
 	if err := m.nc.Flush(); err != nil {
 		hlog.Errorf("nats 连接失败！信息：%s", err.Error())
-		return nil
+		return err
 	}
 	if err := m.nc.LastError(); err != nil {
 		hlog.Errorf("nats 连接失败！信息：%s", err.Error())
-		return nil
+		return err
 	}
 	if !m.nc.IsConnected() {
 		return fmt.Errorf("NATS 没有处于连接状态")

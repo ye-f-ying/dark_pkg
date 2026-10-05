@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-05-30 16:16:02
- * @LastEditTime: 2026-05-31 15:43:36
+ * @LastEditTime: 2026-10-05 14:56:58
  * @FilePath: /dark_pkg/pkg/db/redis.go
  * @Description:
  */
@@ -9,6 +9,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"os"
 	"runtime"
 	"sync"
 	"time"
@@ -106,6 +107,9 @@ func (m *RedisCluster) Init() error {
  * @return {*}
  */
 func (m *RedisCluster) GetRedis() redis.UniversalClient {
+	if m.universalClient == nil {
+		InitRedis()
+	}
 	return m.universalClient
 }
 
@@ -125,6 +129,9 @@ func InitRedis() (err error) {
 	redisClusterOnce.Do(func() {
 		redisCluster = RedisCluster{}
 		err = redisCluster.Init()
+		if err != nil {
+			os.Exit(1)
+		}
 	})
 	return err
 }

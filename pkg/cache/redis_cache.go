@@ -1,6 +1,6 @@
 /*
  * @Date: 2026-05-30 16:27:46
- * @LastEditTime: 2026-05-30 16:28:47
+ * @LastEditTime: 2026-10-05 14:59:46
  * @FilePath: /dark_pkg/pkg/cache/redis_cache.go
  * @Description:
  */
@@ -50,7 +50,7 @@ type CacheDataGeneral[T any] struct {
 func RedisCache[T any](param RedisParam, fetchFunc func() (*T, error)) (*T, error) {
 	key := param.Key
 	if param.Ctx == nil {
-		param.Ctx = context.Background()
+		param.Ctx = db.GetRedisContext()
 	}
 
 	var cacheTime time.Duration
@@ -60,7 +60,7 @@ func RedisCache[T any](param RedisParam, fetchFunc func() (*T, error)) (*T, erro
 		cacheTime = ExpireWithJitter(REDIC_CACHE_BADE_EX)
 	}
 
-	ctx := db.GetRedisContext()
+	ctx := param.Ctx
 	if param.IsCache {
 		// 读取缓存
 		cacheStr, err := db.GetRedisClient().Get(ctx, key).Result()
@@ -105,7 +105,7 @@ func RedisCache[T any](param RedisParam, fetchFunc func() (*T, error)) (*T, erro
 func RedisCacheGeneral[T any](param RedisParam, fetchFunc func() (T, error)) (T, error) {
 	key := param.Key
 	if param.Ctx == nil {
-		param.Ctx = context.Background()
+		param.Ctx = db.GetRedisContext()
 	}
 	var cacheTime time.Duration
 	if param.MaxTime > 0 {
@@ -113,7 +113,7 @@ func RedisCacheGeneral[T any](param RedisParam, fetchFunc func() (T, error)) (T,
 	} else {
 		cacheTime = ExpireWithJitter(REDIC_CACHE_BADE_EX)
 	}
-	ctx := db.GetRedisContext()
+	ctx := param.Ctx
 	var tempT T
 	if param.IsCache {
 		// 读取缓存
@@ -178,12 +178,12 @@ func RedisCacheHash[T any](param RedisParam, fetchFunc func() (T, error)) (T, er
 	var (
 		hashKey = param.Node
 		field   = param.Key
-		ctx     = db.GetRedisContext()
+		ctx     = param.Ctx
 		tempT   T
 		client  = db.GetRedisClient()
 	)
 	if param.Ctx == nil {
-		param.Ctx = context.Background()
+		param.Ctx = db.GetRedisContext()
 	}
 
 	// ===============================
